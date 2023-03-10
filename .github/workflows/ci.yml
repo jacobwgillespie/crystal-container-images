@@ -13,10 +13,16 @@ env:
   shards_version: 0.17.2
   gc_version: 8.2.2
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   alpine:
     name: Alpine container
     runs-on: ubuntu-latest
+    concurrency:
+      group: alpine
     strategy:
       matrix:
         include:
@@ -25,10 +31,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - uses: depot/setup-action@v1
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
@@ -36,11 +39,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
         if: ${{ github.ref == 'refs/heads/main' }}
       - name: Build and push
-        uses: docker/build-push-action@v3
+        uses: depot/build-push-action@v1
         with:
+          project: zjh7v82xv6
           context: alpine
-          cache-from: type=gha,scope=container-alpine-${{ matrix.alpine_version }}
-          cache-to: type=gha,mode=max,scope=container-alpine-${{ matrix.alpine_version }}
           pull: true
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -60,15 +62,16 @@ jobs:
     name: Debian/RPM static packages
     needs: alpine
     runs-on: ubuntu-latest
+    concurrency:
+      group: pkgs
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
       - name: Export packages
-        uses: docker/build-push-action@v3
+        uses: depot/build-push-action@v1
         with:
-          cache-from: type=gha,scope=static-pkgs
-          cache-to: type=gha,mode=max,scope=static-pkgs
+          project: zjh7v82xv6
           context: pkgs
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -90,6 +93,8 @@ jobs:
   debian:
     name: Debian
     runs-on: ubuntu-latest
+    concurrency:
+      group: debian
     strategy:
       fail-fast: false
       matrix:
@@ -117,10 +122,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - uses: depot/setup-action@v1
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
@@ -128,11 +130,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
         if: ${{ github.ref == 'refs/heads/main' }}
       - name: Build and push container
-        uses: docker/build-push-action@v3
+        uses: depot/build-push-action@v1
         with:
+          project: zjh7v82xv6
           context: debian
-          cache-from: type=gha,scope=container-${{ matrix.base_image }}-${{ matrix.version }}
-          cache-to: type=gha,mode=max,scope=container-${{ matrix.base_image }}-${{ matrix.version }}
           pull: true
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -148,10 +149,9 @@ jobs:
             84codes/crystal:latest-${{ matrix.base_image }}-${{ matrix.codename }}
           push: ${{ github.ref == 'refs/heads/main' }}
       - name: Export packages
-        uses: docker/build-push-action@v3
+        uses: depot/build-push-action@v1
         with:
-          cache-from: type=gha,scope=container-${{ matrix.base_image }}-${{ matrix.version }}
-          cache-to: type=gha,mode=max,scope=container-${{ matrix.base_image }}-${{ matrix.version }}
+          project: zjh7v82xv6
           context: debian
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -179,6 +179,8 @@ jobs:
   fedora:
     name: Fedora
     runs-on: ubuntu-latest
+    concurrency:
+      group: fedora
     strategy:
       fail-fast: false
       matrix:
@@ -194,10 +196,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - uses: depot/setup-action@v1
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
@@ -205,11 +204,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
         if: ${{ github.ref == 'refs/heads/main' }}
       - name: Build and push container
-        uses: docker/build-push-action@v3
+        uses: depot/build-push-action@v1
         with:
+          project: zjh7v82xv6
           context: fedora
-          cache-from: type=gha,scope=container-${{ matrix.base_image }}-${{ matrix.base_image_tag }}
-          cache-to: type=gha,mode=max,scope=container-${{ matrix.base_image }}-${{ matrix.base_image_tag }}
           pull: true
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -224,10 +222,9 @@ jobs:
             84codes/crystal:latest-${{ matrix.base_image }}-${{ matrix.base_image_tag }}
           push: ${{ github.ref == 'refs/heads/main' }}
       - name: Export packages
-        uses: docker/build-push-action@v3
+        uses: depot/build-push-action@v1
         with:
-          cache-from: type=gha,scope=container-${{ matrix.base_image }}-${{ matrix.base_image_tag }}
-          cache-to: type=gha,mode=max,scope=container-${{ matrix.base_image }}-${{ matrix.base_image_tag }}
+          project: zjh7v82xv6
           context: fedora
           platforms: linux/amd64,linux/arm64
           build-args: |
